@@ -1,0 +1,12 @@
+{
+  "name": "Bridge BOH",
+  "description": "Role-aware real-time operations hub for restaurant staff, featuring station-specific order routing and inter-staff messaging.",
+  "requestFramePermissions": [
+    "notifications"
+  ],
+  "majorCapabilities": [
+    "real-time-sync",
+    "role-based-access",
+    "pwa"
+  ]
+}
