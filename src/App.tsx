@@ -12,20 +12,40 @@ import TakeoutBoard from './components/TakeoutBoard';
 import DriverDispatch from './components/DriverDispatch';
 import MessagingInbox from './components/MessagingInbox';
 import ManagerDashboard from './components/ManagerDashboard';
+import CustomerSupportPortal from './components/CustomerSupportPortal';
 import { Loader2, LogOut, LayoutDashboard, Terminal, MessageSquare, ShieldCheck } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useOrderStore } from './store/useOrderStore';
 
-type View = 'dashboard' | 'board' | 'messages';
+type View = 'dashboard' | 'board' | 'messages' | 'customer_support';
 
 export default function App() {
   const { user, role, loading, initialized, initialize, signOut } = useAuthStore();
   const { subscribeToOrders } = useOrderStore();
   const [activeView, setActiveView] = useState<View>('board');
+  const [isCustomerMode, setIsCustomerMode] = useState(false);
 
   useEffect(() => {
+    // Check URL for mode
+    if (window.location.search.includes('customer')) {
+      setIsCustomerMode(true);
+    }
     initialize();
   }, [initialize]);
+
+  if (isCustomerMode) {
+    return (
+      <div className="font-sans">
+        <CustomerSupportPortal />
+        <button 
+          onClick={() => setIsCustomerMode(false)}
+          className="fixed bottom-4 right-4 bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black text-gray-500 uppercase px-4 py-2 rounded-full transition-all z-50"
+        >
+          Return to BOH
+        </button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (initialized && role) {

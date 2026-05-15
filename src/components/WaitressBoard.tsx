@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, MessageSquare, AlertCircle, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Clock, MessageSquare, AlertCircle, ChevronRight, CheckCircle2, Plus } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../lib/utils';
 import type { Order } from '../types';
+import NewOrderModal from './NewOrderModal';
 
 export default function WaitressBoard() {
   const { orders, subscribeToOrders, updateOrderStatus } = useOrderStore();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     subscribeToOrders();
@@ -16,21 +18,37 @@ export default function WaitressBoard() {
   const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <AnimatePresence mode="popLayout">
-        {activeOrders.map((order) => (
-          <OrderCard 
-            key={order.id} 
-            order={order} 
-            onUpdateStatus={(status) => updateOrderStatus(order.id, status)}
-          />
-        ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black tracking-tighter uppercase">WAITRESS COMMAND CENTER</h2>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-amber-500 hover:bg-amber-600 text-black px-6 py-3 rounded-full flex items-center gap-2 font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-amber-500/10 active:scale-95"
+        >
+          <Plus className="w-4 h-4" /> NEW TICKET
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <AnimatePresence mode="popLayout">
+          {activeOrders.map((order) => (
+            <OrderCard 
+              key={order.id} 
+              order={order} 
+              onUpdateStatus={(status) => updateOrderStatus(order.id, status)}
+            />
+          ))}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {isModalOpen && <NewOrderModal onClose={() => setIsModalOpen(false)} />}
       </AnimatePresence>
     </div>
   );
 }
 
-function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (status: Order['status']) => void }) {
+function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (status: Order['status']) => void | Promise<void>, key?: string }) {
   const timeElapsed = formatDistanceToNow(new Date(order.created_at));
   
   const getStatusColor = (status: Order['status']) => {
@@ -77,8 +95,13 @@ function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (s
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-sm">{item.qty}x</span>
-                <span className="font-medium text-sm">{item.name}</span>
+                <span className={cn("font-medium text-sm", item.status === 'unavailable' && "line-through text-red-500 opacity-50")}>{item.name}</span>
               </div>
+              {item.status === 'unavailable' && (
+                <div className="text-[10px] font-black text-red-500 uppercase tracking-widest mt-1 ml-6">
+                  ITEM 86'D / UNAVAILABLE
+                </div>
+              )}
               {item.mods?.length > 0 && (
                 <div className="text-[11px] text-amber-500/80 mt-1 pl-6">
                   {item.mods.join(' • ')}
@@ -92,7 +115,10 @@ function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (s
             </div>
             <div className={cn(
               "w-2 h-2 rounded-full mt-1.5",
-              item.status === 'ready' ? "bg-green-500" : item.status === 'fired' ? "bg-amber-500" : "bg-gray-700"
+              item.status === 'ready' ? "bg-green-500" : 
+              item.status === 'fired' ? "bg-amber-500" : 
+              item.status === 'unavailable' ? "bg-red-500" : 
+              "bg-gray-700"
             )} />
           </div>
         ))}

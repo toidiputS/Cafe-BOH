@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { LogIn, Mail, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
@@ -132,6 +132,20 @@ export default function SignInScreen() {
             </button>
 
             <div className="flex items-center gap-2 text-gray-500 text-[10px] font-black uppercase tracking-widest pt-4">
+              <div className="h-px flex-1 bg-[#333]" />
+              <span>External Support</span>
+              <div className="h-px flex-1 bg-[#333]" />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => window.location.search = '?customer'}
+              className="w-full bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/80 text-blue-500 font-black py-4 rounded uppercase tracking-widest transition-all mb-4"
+            >
+              GUEST SUPPORT PORTAL
+            </button>
+
+            <div className="flex items-center gap-2 text-gray-500 text-[10px] font-black uppercase tracking-widest">
               <div className="h-px flex-1 bg-[#333]" />
               <span>Quick Access Portals</span>
               <div className="h-px flex-1 bg-[#333]" />

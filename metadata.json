@@ -1,6 +1,6 @@
 {
   "name": "Bridge BOH",
-  "description": "Real-time kitchen operations hub, station-to-station messaging, and manager analytics for Bridge Café.",
+  "description": "Full-stack kitchen operations hub with integrated customer loyalty, real-time station messaging, and advanced manager analytics.",
   "requestFramePermissions": [
     "notifications",
     "microphone"

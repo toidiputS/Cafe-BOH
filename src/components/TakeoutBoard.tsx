@@ -51,7 +51,7 @@ export default function TakeoutBoard() {
   );
 }
 
-function TakeoutCard({ order, onReady, onHandOff }: { order: Order, onReady: () => void, onHandOff: () => void }) {
+function TakeoutCard({ order, onReady, onHandOff }: { order: Order, onReady: () => void | Promise<void>, onHandOff: () => void | Promise<void>, key?: string }) {
   const isReady = order.status === 'ready';
 
   return (
@@ -79,11 +79,15 @@ function TakeoutCard({ order, onReady, onHandOff }: { order: Order, onReady: () 
         <div className="space-y-1 mb-4">
           {order.items.map((item, i) => (
             <div key={i} className="text-xs text-gray-300 flex justify-between">
-              <span>{item.qty}x {item.name}</span>
+              <span className={cn(item.status === 'unavailable' && "line-through text-red-500 opacity-50")}>
+                {item.qty}x {item.name}
+              </span>
               <span className={cn(
                 "text-[9px] font-black uppercase",
-                item.status === 'ready' ? "text-green-500" : "text-gray-600"
-              )}>{item.status}</span>
+                item.status === 'ready' ? "text-green-500" : 
+                item.status === 'unavailable' ? "text-red-500" : 
+                "text-gray-600"
+              )}>{item.status === 'unavailable' ? "86'd" : item.status}</span>
             </div>
           ))}
         </div>

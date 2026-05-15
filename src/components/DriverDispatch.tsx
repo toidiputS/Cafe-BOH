@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useOrderStore } from '../store/useOrderStore';
 import { formatDistanceToNow } from 'date-fns';
@@ -49,7 +49,7 @@ export default function DriverDispatch() {
   );
 }
 
-function DeliveryCard({ order, onOutForDelivery, onDelivered }: { order: Order, onOutForDelivery: () => void, onDelivered: () => void }) {
+function DeliveryCard({ order, onOutForDelivery, onDelivered }: { order: Order, onOutForDelivery: () => void | Promise<void>, onDelivered: () => void | Promise<void>, key?: string }) {
   const isEnRoute = order.status === 'in_progress';
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery_address || '')}`;
 

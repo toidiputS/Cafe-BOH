@@ -6,6 +6,8 @@ export type UserRole =
   | 'waitress' 
   | 'head_chef' 
   | 'prep_cook' 
+  | 'grill_cook'
+  | 'fry_cook'
   | 'expeditor' 
   | 'manager' 
   | 'takeout_host' 
