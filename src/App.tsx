@@ -41,7 +41,7 @@ export default function App() {
 
   if (loading || !initialized) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+      <div className="min-h-dvh bg-[#0A0A0A] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
       </div>
     );
@@ -55,14 +55,14 @@ export default function App() {
     <button
       onClick={() => setActiveView(id)}
       className={cn(
-        "flex items-center gap-2 px-4 h-16 transition-all border-b-2 relative",
+        "flex items-center gap-2 px-2 md:px-4 h-16 transition-all border-b-2 relative",
         activeView === id 
           ? "border-amber-500 text-amber-500 bg-amber-500/5 font-bold" 
           : "border-transparent text-gray-500 hover:text-white hover:bg-white/5"
       )}
     >
       <Icon className="w-4 h-4" />
-      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
+      <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">{label}</span>
       {activeView === id && (
         <div className="absolute inset-0 bg-amber-500/10 blur-xl rounded-full opacity-50" />
       )}
@@ -70,12 +70,12 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans selection:bg-amber-500/30 flex flex-col">
-      <header className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#1A1A1A] sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-4">
-            <span className="text-amber-500 font-bold tracking-tighter text-xl">BRIDGE BOH</span>
-            <div className="h-6 w-px bg-[#333]" />
+    <div className="min-h-dvh bg-[#0A0A0A] text-white font-sans selection:bg-amber-500/30 flex flex-col">
+      <header className="h-16 border-b border-[#333] flex items-center justify-between px-2 sm:px-6 bg-[#1A1A1A] sticky top-0 z-50">
+        <div className="flex items-center gap-2 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <span className="text-amber-500 font-bold tracking-tighter text-lg sm:text-xl">BRIDGE BOH</span>
+            <div className="h-6 w-px bg-[#333] hidden sm:block" />
             <div className="flex items-center gap-2">
               <span className="px-2 py-1 bg-amber-500 text-black text-[10px] font-black uppercase rounded tracking-wider">
                 {role?.replace('_', ' ')}
@@ -84,9 +84,9 @@ export default function App() {
           </div>
           
           <nav className="flex items-center">
-            {role === 'manager' && <NavItem id="dashboard" label="MGR PANEL" icon={ShieldCheck} />}
-            {(role !== 'manager') && <NavItem id="board" label="LIVE BOARD" icon={activeView === 'board' ? Terminal : LayoutDashboard} />}
-            <NavItem id="messages" label="MESSAGES" icon={MessageSquare} />
+            {role === 'manager' && <NavItem id="dashboard" label="MGR" icon={ShieldCheck} />}
+            {(role !== 'manager') && <NavItem id="board" label="BOARD" icon={activeView === 'board' ? Terminal : LayoutDashboard} />}
+            <NavItem id="messages" label="MSGS" icon={MessageSquare} />
           </nav>
         </div>
 
@@ -102,7 +102,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+      <main className="flex-1 overflow-y-auto p-2 sm:p-6 custom-scrollbar">
         <div className="max-w-[1800px] mx-auto">
           {activeView === 'dashboard' && role === 'manager' && <ManagerDashboard />}
           
