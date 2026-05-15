@@ -1,20 +1,66 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# BRIDGE BOH (Back of House) 🍳
+### Real-Time Kitchen Operations Command Center for Bridge Café
 
-# Run and deploy your AI Studio app
+Bridge BOH is a high-performance, role-aware restaurant management ecosystem built for speed, accuracy, and cross-staff communication. From the first order entry at the Waitress Board to the final hand-off at the Driver Dispatch, every update is synchronized in real-time.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/c228271e-c82c-4651-950b-571d5b0f2c74
+## 🚀 Key Features
 
-## Run Locally
+### 1. Multi-Station KDS (Kitchen Display System)
+*   **Station-Specific Routing**: Intelligent filtering for Head Chef, Prep Cook, Expeditor, and Bartender.
+*   **Heat Mapping**: Tickets change visual state and animations based on age to prioritize urgent orders.
+*   **Atomic Completion**: Orders are tracked by item-level status (Ready/Pending).
 
-**Prerequisites:**  Node.js
+### 2. Smart Connectivity
+*   **Station-to-Station Messaging**: Integrated chat for instant coordination (e.g., "86 the salmon" or "Need Expo at Plate").
+*   **Voice-to-Text Dictation**: Using the Web Speech API, staff can dictate messages hands-free—critical for busy kitchen environments.
+*   **Push Notifications**: System-wide browser notifications for incoming tickets and high-priority transmissions.
 
+### 3. Specialized Service Boards
+*   **Waitress Board**: Live tracking of table statuses and pickup notifications.
+*   **Takeout/Pickup Hub**: Dedicated flow for phone and third-party orders with SMS readiness indicators.
+*   **Driver Dispatch**: Integrated navigation links (Google Maps) and real-time delivery status tracking.
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 4. Directorial Intelligence
+*   **Manager Dashboard**: Live business metrics, real-time staff activity feeds, and station oversight.
+
+---
+
+## 🛠 Tech Stack
+
+*   **Runtime**: React 19 + Vite
+*   **Styling**: Tailwind CSS (Brutalist High-Contrast Dark Mode)
+*   **State**: Zustand (Real-time store management)
+*   **Backend**: Supabase (PostgreSQL + Realtime CDC)
+*   **Animations**: Motion (formerly Framer Motion)
+
+---
+
+## 🔐 Access & Authentication
+
+### Staff Authorization
+The app uses **Supabase Magic Links** for device authorization. Once an email is authorized, the device stays logged in to prevent session timeouts during a shift.
+
+### Default Testing Credentials
+For development and demonstration purposes, use the following:
+*   **Authorized Emails**: `klutchkanobi@gmail.com`, `staff@bridgecafe.com`
+*   **Default Staff PIN**: `1234`
+*   **Quick Station Switcher**: Located at the top of the app in development mode for instantaneous role-swapping.
+
+---
+
+## 📂 Project Structure
+
+*   `/src/components`: Role-specific boards (Waitress, Kitchen, Takeout, Driver, Manager).
+*   `/src/store`: Zustand stores for centralized state handling.
+*   `/src/lib`: Supabase client, Utility functions, and Notification service.
+*   `/supabase-schema.sql`: Idempotent database schema for deployment.
+*   `PRD.md`: Detailed Product Requirements and design philosophy.
+
+---
+
+## 📜 Development Logs
+*   **Microphone Permissions**: Added to `metadata.json` for voice-to-text functionality.
+*   **Notification Support**: Added to `metadata.json` and implemented via `Notification API`.
+*   **Bypass Modes**: Implemented "Quick Portals" on the sign-in screen to mitigate email rate-limiting during testing.
