@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: import.meta.env.VITE_SITE_URL || window.location.origin,
+        emailRedirectTo: window.location.origin,
       },
     });
     if (error) throw error;

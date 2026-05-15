@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS staff_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('waitress', 'head_chef', 'prep_cook', 'expeditor', 'manager', 'takeout_host', 'driver', 'bartender')),
+  pin_code TEXT DEFAULT '1234', -- Default PIN for easy testing
   is_active BOOLEAN DEFAULT TRUE,
   station TEXT,                  -- e.g. 'grill', 'fry', 'expo'
   last_seen TIMESTAMPTZ DEFAULT now(),
@@ -110,6 +111,7 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
     CASE
       WHEN NEW.email = 'one2onemill@gmail.com' THEN 'manager'
+      WHEN NEW.email = 'klutchkanobi@gmail.com' THEN 'manager'
       ELSE 'waitress' -- Default role for others, can be changed in DB later
     END
   );

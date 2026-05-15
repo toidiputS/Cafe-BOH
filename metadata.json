@@ -1,8 +1,9 @@
 {
   "name": "Bridge BOH",
-  "description": "Role-aware real-time operations hub for restaurant staff, featuring station-specific order routing and inter-staff messaging.",
+  "description": "Real-time kitchen operations hub, station-to-station messaging, and manager analytics for Bridge Café.",
   "requestFramePermissions": [
-    "notifications"
+    "notifications",
+    "microphone"
   ],
   "majorCapabilities": [
     "real-time-sync",

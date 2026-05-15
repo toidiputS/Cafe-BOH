@@ -1,10 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, MessageSquare, User, Clock, Check } from 'lucide-react';
+import { Send, MessageSquare, User, Clock, Check, Mic, MicOff, Package } from 'lucide-react';
 import { useMessageStore } from '../store/useMessageStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { useOrderStore } from '../store/useOrderStore';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../lib/utils';
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 export default function MessagingInbox() {
   const { role } = useAuthStore();
@@ -13,7 +21,64 @@ export default function MessagingInbox() {
   const [activeOrderId, setActiveOrderId] = useState<string>('');
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const { orders } = useOrderStore();
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice-to-text is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        setText(prev => {
+          const trimmed = prev.trim();
+          return trimmed + (trimmed ? ' ' : '') + finalTranscript;
+        });
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
 
   useEffect(() => {
     if (role) subscribeToMessages(role);
@@ -92,13 +157,38 @@ export default function MessagingInbox() {
             </select>
           </div>
 
-          <div className="flex-1 flex flex-col">
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">MESSAGE CONTENT</label>
+          <div className="flex-1 flex flex-col relative">
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">MESSAGE CONTENT</label>
+              <button
+                type="button"
+                onClick={toggleListening}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-black transition-all border",
+                  isListening 
+                    ? "bg-red-500/20 border-red-500 text-red-500 animate-pulse" 
+                    : "bg-black/40 border-[#333] text-gray-500 hover:text-amber-500 hover:border-amber-500"
+                )}
+              >
+                {isListening ? (
+                  <>
+                    <MicOff className="w-3 h-3" /> STOP DICTATING
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3 h-3" /> VOICE-TO-TEXT
+                  </>
+                )}
+              </button>
+            </div>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="e.target.value = '86 the salmon, 10 min wait'..."
-              className="flex-1 w-full bg-[#0A0A0A] border border-[#333] rounded-lg p-4 text-sm focus:outline-none focus:border-amber-500 font-mono resize-none leading-relaxed"
+              placeholder={isListening ? "Listening..." : "e.target.value = '86 the salmon, 10 min wait'..."}
+              className={cn(
+                "flex-1 w-full bg-[#0A0A0A] border border-[#333] rounded-lg p-4 text-sm focus:outline-none focus:border-amber-500 font-mono resize-none leading-relaxed transition-all",
+                isListening && "border-red-500/50 ring-1 ring-red-500/20"
+              )}
             />
           </div>
 

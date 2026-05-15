@@ -31,19 +31,22 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       });
 
     // Realtime
-    supabase
-      .channel('messages-live')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'staff_messages' },
-        (payload) => {
-          const newMessage = payload.new as StaffMessage;
-          if (newMessage.to_role === role || newMessage.to_role === 'manager' || newMessage.from_role === role) {
-            set((state) => ({ messages: [newMessage, ...state.messages] }));
+    const channel = supabase.channel('messages-live');
+    
+    supabase.removeChannel(channel).then(() => {
+      supabase.channel('messages-live')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'staff_messages' },
+          (payload) => {
+            const newMessage = payload.new as StaffMessage;
+            if (newMessage.to_role === role || newMessage.to_role === 'manager' || newMessage.from_role === role) {
+              set((state) => ({ messages: [newMessage, ...state.messages] }));
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    });
   },
 
   sendMessage: async (to, from, message, orderId) => {

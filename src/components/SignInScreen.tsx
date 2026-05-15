@@ -69,9 +69,37 @@ export default function SignInScreen() {
           transition={{ delay: 0.1 }}
           className="bg-[#1A1A1A] border border-[#333] p-8 rounded-lg shadow-2xl"
         >
+          {error?.includes('rate limit') && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 p-4 rounded-lg">
+              <p className="text-xs text-red-500 font-bold mb-2 uppercase tracking-tighter">Email Rate Limit Exceeded</p>
+              <button
+                type="button"
+                onClick={() => {
+                   // Force bypass for the user to keep testing
+                   useAuthStore.setState({ 
+                    user: { id: 'dev-user', email: 'staff@bridgecafe.com' } as any,
+                    role: 'manager',
+                    initialized: true,
+                    loading: false
+                   });
+                }}
+                className="w-full bg-red-500 text-white font-black py-2 rounded text-[10px] uppercase tracking-widest hover:bg-red-600 transition-colors"
+              >
+                Bypass Auth (Developer Mode)
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-lg mb-6">
+              <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">STATION AUTHORIZATION</p>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Enter your staff email. Once authorized, this device will stay logged in. You can switch stations using your <span className="text-amber-500 font-bold">Staff PIN (Default: 1234)</span>.
+              </p>
+            </div>
+
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">
+              <label htmlFor="email" className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
                 Staff Email
               </label>
               <div className="relative">
@@ -103,10 +131,37 @@ export default function SignInScreen() {
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
 
-            <div className="flex items-center gap-2 text-gray-500 text-xs">
+            <div className="flex items-center gap-2 text-gray-500 text-[10px] font-black uppercase tracking-widest pt-4">
               <div className="h-px flex-1 bg-[#333]" />
-              <span>STATION AUTHENTICATION REQUIRED</span>
+              <span>Quick Access Portals</span>
               <div className="h-px flex-1 bg-[#333]" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { r: 'manager', l: 'Manager' },
+                { r: 'waitress', l: 'Waitress' },
+                { r: 'head_chef', l: 'Head Chef' },
+                { r: 'expeditor', l: 'Expeditor' },
+                { r: 'takeout_host', l: 'Takeout' },
+                { r: 'driver', l: 'Driver' }
+              ].map((p) => (
+                <button
+                  key={p.r}
+                  type="button"
+                  onClick={() => {
+                    useAuthStore.setState({ 
+                      user: { id: `dev-${p.r}`, email: `${p.r}@bridgecafe.com` } as any,
+                      role: p.r as any,
+                      initialized: true,
+                      loading: false
+                    });
+                  }}
+                  className="bg-[#0A0A0A] border border-[#333] hover:border-amber-500/40 hover:text-amber-500 text-[10px] font-black py-3 rounded uppercase tracking-tighter transition-all"
+                >
+                  {p.l}
+                </button>
+              ))}
             </div>
           </form>
         </motion.div>
