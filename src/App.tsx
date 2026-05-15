@@ -33,10 +33,11 @@ export default function App() {
     }
   }, [initialized, role, subscribeToOrders]);
 
-  // Set default view based on role
   useEffect(() => {
-    if (role === 'manager') setActiveView('dashboard');
-    else if (role) setActiveView('board');
+    if (role) setActiveView(role === 'manager' ? 'dashboard' : 'board');
+    if (role) {
+      import('./lib/notifications').then(m => m.requestNotificationPermission());
+    }
   }, [role]);
 
   if (loading || !initialized) {

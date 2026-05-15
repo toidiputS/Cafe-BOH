@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { StaffMessage } from '../types';
+import { sendNotification } from '../lib/notifications';
 
 interface MessageState {
   messages: StaffMessage[];
@@ -42,6 +43,14 @@ export const useMessageStore = create<MessageState>((set, get) => ({
             const newMessage = payload.new as StaffMessage;
             if (newMessage.to_role === role || newMessage.to_role === 'manager' || newMessage.from_role === role) {
               set((state) => ({ messages: [newMessage, ...state.messages] }));
+              
+              // Only notify if message is TO me or my group
+              if (newMessage.to_role === role || newMessage.to_role === 'manager') {
+                sendNotification(`NEW TRANSMISSION: ${newMessage.from_role.replace('_', ' ').toUpperCase()}`, {
+                  body: newMessage.message,
+                  tag: 'new-message'
+                });
+              }
             }
           }
         )

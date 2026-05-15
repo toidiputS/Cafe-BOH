@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { Order } from '../types';
 
+import { sendNotification } from '../lib/notifications';
+
 interface OrderState {
   orders: Order[];
   loading: boolean;
@@ -46,6 +48,10 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
             if (eventType === 'INSERT') {
               set({ orders: [newOrder as Order, ...currentOrders] });
+              sendNotification('INCOMING TICKET', {
+                body: `New ${newOrder.order_type} order for ${newOrder.customer_name || 'Guest'}`,
+                tag: 'new-order'
+              });
             } else if (eventType === 'UPDATE') {
               set({
                 orders: currentOrders.map((o) =>
