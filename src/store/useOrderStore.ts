@@ -18,6 +18,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   subscribeToOrders: () => {
     if (get().initialized) return;
+    set({ initialized: true });
 
     // Initial fetch
     supabase

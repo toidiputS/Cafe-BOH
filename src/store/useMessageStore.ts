@@ -5,6 +5,7 @@ import type { StaffMessage } from '../types';
 interface MessageState {
   messages: StaffMessage[];
   loading: boolean;
+  initialized: boolean;
   subscribeToMessages: (role: string) => void;
   sendMessage: (to: string, from: string, message: string, orderId?: string) => Promise<void>;
   markAsRead: (messageId: string) => Promise<void>;
@@ -13,8 +14,12 @@ interface MessageState {
 export const useMessageStore = create<MessageState>((set, get) => ({
   messages: [],
   loading: true,
+  initialized: false,
 
   subscribeToMessages: (role) => {
+    if (get().initialized) return;
+    set({ initialized: true });
+
     // Initial fetch
     supabase
       .from('staff_messages')
