@@ -49,47 +49,86 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user ?? null;
+    const initStart = performance.now();
+    console.log('[AuthStore Trace] initialize() started...');
     
-    let role: UserRole | null = null;
-    let profile = null;
+    try {
+      // Race getSession with a 3-second timeout to prevent hanging forever if Supabase is unreachable
+      const sessionStart = performance.now();
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<{ data: { session: null }, error: any }>((resolve) => {
+        setTimeout(() => {
+          console.warn('[AuthStore Trace] supabase.auth.getSession() timed out after 3000ms, proceeding as logged-out');
+          resolve({ data: { session: null }, error: new Error('Session fetch timed out') });
+        }, 3000);
+      });
 
-    if (user) {
-      const { data } = await supabase
-        .from('staff_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (data) {
-        profile = data;
-        role = data.role as UserRole;
-      }
-    }
+      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+      const sessionDuration = (performance.now() - sessionStart).toFixed(2);
+      console.log(`[AuthStore Trace] getSession() resolved in ${sessionDuration}ms. Session present: ${Boolean(session)}`);
 
-    set({ user, role, profile, loading: false, initialized: true });
-
-    // Listen for auth changes
-    supabase.auth.onAuthStateChange(async (_event, session) => {
       const user = session?.user ?? null;
       let role: UserRole | null = null;
       let profile = null;
 
       if (user) {
+        const profileStart = performance.now();
+        console.log(`[AuthStore Trace] Fetching staff profile for user ${user.id}...`);
         const { data } = await supabase
           .from('staff_profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+        const profileDuration = (performance.now() - profileStart).toFixed(2);
         
         if (data) {
           profile = data;
           role = data.role as UserRole;
+          console.log(`[AuthStore Trace] Staff profile fetched in ${profileDuration}ms. Role: ${role}`);
+        } else {
+          console.log(`[AuthStore Trace] Staff profile lookup returned no data in ${profileDuration}ms.`);
         }
       }
-      
-      set({ user, role, profile, loading: false });
-    });
+
+      const totalDuration = (performance.now() - initStart).toFixed(2);
+      console.log(`[AuthStore Trace] initialize() finished successfully in ${totalDuration}ms.`);
+      set({ user, role, profile, loading: false, initialized: true });
+    } catch (err) {
+      const errorDuration = (performance.now() - initStart).toFixed(2);
+      console.error(`[AuthStore Trace] initialize() failed after ${errorDuration}ms:`, err);
+      // Guarantee loading is completed and initialized is set so app startup does not lock up on blank screen
+      set({ user: null, role: null, profile: null, loading: false, initialized: true });
+      throw err;
+    }
+
+    // Listen for auth changes
+    try {
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        try {
+          const user = session?.user ?? null;
+          let role: UserRole | null = null;
+          let profile = null;
+
+          if (user) {
+            const { data } = await supabase
+              .from('staff_profiles')
+              .select('*')
+              .eq('id', user.id)
+              .single();
+            
+            if (data) {
+              profile = data;
+              role = data.role as UserRole;
+            }
+          }
+          
+          set({ user, role, profile, loading: false });
+        } catch (authChangeErr) {
+          console.error('[useAuthStore] Auth state change listener error:', authChangeErr);
+        }
+      });
+    } catch (listenerErr) {
+      console.warn('[useAuthStore] Failed to subscribe to onAuthStateChange:', listenerErr);
+    }
   },
 }));

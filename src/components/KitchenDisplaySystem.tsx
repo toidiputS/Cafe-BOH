@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../lib/utils';
 import { Flame, CheckCircle, Package, Ban, Clock } from 'lucide-react';
 import type { Order, OrderItem, Station } from '../types';
+import { audioAlerts } from '../lib/audioAlerts';
 
 export default function KitchenDisplaySystem() {
   const { orders, subscribeToOrders, updateItemStatus, updateOrderStatus } = useOrderStore();
@@ -92,10 +93,22 @@ export default function KitchenDisplaySystem() {
                 key={order.id} 
                 order={order}
                 viewStation={activeStation}
-                onFireItem={(idx) => updateItemStatus(order.id, idx, 'fired')}
-                onReadyItem={(idx) => updateItemStatus(order.id, idx, 'ready')}
-                onUnavailableItem={(idx) => updateItemStatus(order.id, idx, 'unavailable')}
-                onCompleteTicket={() => updateOrderStatus(order.id, 'ready')}
+                onFireItem={(idx) => {
+                  updateItemStatus(order.id, idx, 'fired');
+                  audioAlerts.playFireItemSizzle();
+                }}
+                onReadyItem={(idx) => {
+                  updateItemStatus(order.id, idx, 'ready');
+                  audioAlerts.playKitchenBellChime();
+                }}
+                onUnavailableItem={(idx) => {
+                  updateItemStatus(order.id, idx, 'unavailable');
+                  audioAlerts.playWarningBuzz();
+                }}
+                onCompleteTicket={() => {
+                  updateOrderStatus(order.id, 'ready');
+                  audioAlerts.playKitchenBellChime();
+                }}
               />
             ))}
           </AnimatePresence>

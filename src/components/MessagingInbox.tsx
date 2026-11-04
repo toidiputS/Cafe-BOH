@@ -168,9 +168,9 @@ export default function MessagingInbox() {
     }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-160px)]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:h-[calc(100vh-160px)] h-auto pb-12 lg:pb-0">
       {/* Sidebar: Threads */}
-      <div className="lg:col-span-4 bg-[#1A1A1A] border border-[#333] rounded-lg p-6 flex flex-col overflow-hidden">
+      <div className="lg:col-span-4 bg-[#1A1A1A] border border-[#333] rounded-lg p-6 flex flex-col overflow-hidden h-[350px] lg:h-auto">
         <div className="flex gap-2 mb-8 bg-black/40 p-1 rounded-xl border border-[#333]">
           <button 
             onClick={() => setActiveTab('staff')}
@@ -294,7 +294,7 @@ export default function MessagingInbox() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="lg:col-span-8 bg-[#1A1A1A] border border-[#333] rounded-lg flex flex-col overflow-hidden shadow-2xl relative">
+      <div className="lg:col-span-8 bg-[#1A1A1A] border border-[#333] rounded-lg flex flex-col overflow-hidden shadow-2xl relative h-[600px] lg:h-full">
         <div className="p-4 border-b border-[#333] flex justify-between items-center bg-[#252525] z-10">
           <div className="flex items-center gap-3">
             <div className={cn(

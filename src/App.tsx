@@ -12,64 +12,191 @@ import TakeoutBoard from './components/TakeoutBoard';
 import DriverDispatch from './components/DriverDispatch';
 import MessagingInbox from './components/MessagingInbox';
 import ManagerDashboard from './components/ManagerDashboard';
-import CustomerSupportPortal from './components/CustomerSupportPortal';
-import { Loader2, LogOut, LayoutDashboard, Terminal, MessageSquare, ShieldCheck } from 'lucide-react';
+import AIWaitressCopilot from './components/AIWaitressCopilot';
+import ErrorBoundary from './components/ErrorBoundary';
+import { Loader2, LogOut, LayoutDashboard, Terminal, MessageSquare, ShieldCheck, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useOrderStore } from './store/useOrderStore';
 
-type View = 'dashboard' | 'board' | 'messages' | 'customer_support';
+type View = 'dashboard' | 'board' | 'messages' | 'copilot';
 
 export default function App() {
   const { user, role, loading, initialized, initialize, signOut } = useAuthStore();
   const { subscribeToOrders } = useOrderStore();
   const [activeView, setActiveView] = useState<View>('board');
-  const [isCustomerMode, setIsCustomerMode] = useState(false);
+  const [startupError, setStartupError] = useState<Error | null>(null);
 
+  // Wrapped initialization sequence with granular step-by-step trace logging and timing
   useEffect(() => {
-    // Check URL for mode
-    if (window.location.search.includes('customer')) {
-      setIsCustomerMode(true);
+    let isMounted = true;
+    async function runInitSequence() {
+      const overallStart = performance.now();
+      console.log(`[Startup Trace t+0.00ms] 🚀 Starting App initialization sequence...`);
+
+      try {
+        setStartupError(null);
+
+        // Step 1: Initialize Auth Store
+        const step1Start = performance.now();
+        console.log(`[Startup Trace t+${(step1Start - overallStart).toFixed(2)}ms] Step 1/3: Executing useAuthStore.initialize()...`);
+        
+        await initialize();
+
+        const step1End = performance.now();
+        const step1Duration = (step1End - step1Start).toFixed(2);
+        console.log(`[Startup Trace t+${(step1End - overallStart).toFixed(2)}ms] Step 1/3 resolved in ${step1Duration}ms. (Auth Initialized)`);
+
+        const totalDuration = (performance.now() - overallStart).toFixed(2);
+        console.log(`[Startup Trace t+${totalDuration}ms] ✅ App startup initialization sequence completed successfully in ${totalDuration}ms.`);
+      } catch (err: any) {
+        const errorTime = (performance.now() - overallStart).toFixed(2);
+        console.error(`[Startup Trace t+${errorTime}ms] ❌ Startup error during initialization sequence:`, err);
+        if (isMounted) {
+          setStartupError(err instanceof Error ? err : new Error(err?.message || 'Failed to initialize app'));
+        }
+      }
     }
-    initialize();
+
+    runInitSequence();
+    return () => { isMounted = false; };
   }, [initialize]);
 
-  if (isCustomerMode) {
+  // Step 2: Subscribe to Live Orders when initialized and authenticated
+  useEffect(() => {
+    if (initialized && role) {
+      const subStart = performance.now();
+      console.log(`[Startup Trace] Step 2/3: Subscribing to live orders for role "${role}"...`);
+      try {
+        subscribeToOrders();
+        const subDuration = (performance.now() - subStart).toFixed(2);
+        console.log(`[Startup Trace] Step 2/3: Live orders subscription initiated in ${subDuration}ms.`);
+      } catch (err) {
+        const subDuration = (performance.now() - subStart).toFixed(2);
+        console.error(`[Startup Trace] Step 2/3: Error subscribing to live orders after ${subDuration}ms:`, err);
+      }
+    }
+  }, [initialized, role, subscribeToOrders]);
+
+  // Step 3: Handle Role Navigation & Notifications Setup
+  useEffect(() => {
+    if (role) {
+      const roleStart = performance.now();
+      console.log(`[Startup Trace] Step 3/3: Configuring view for role "${role}" & requesting notification permissions...`);
+      setActiveView(role === 'manager' ? 'dashboard' : 'board');
+      
+      const notifStart = performance.now();
+      import('./lib/notifications')
+        .then(m => {
+          const notifDuration = (performance.now() - notifStart).toFixed(2);
+          console.log(`[Startup Trace] Step 3/3: Notification module loaded & requested permission in ${notifDuration}ms.`);
+          return m.requestNotificationPermission();
+        })
+        .catch(err => {
+          const notifDuration = (performance.now() - notifStart).toFixed(2);
+          console.warn(`[Startup Trace] Step 3/3: Notification permission setup failed after ${notifDuration}ms:`, err);
+        });
+    }
+  }, [role]);
+
+  // Handle critical startup initialization error
+  if (startupError) {
     return (
-      <div className="font-sans">
-        <CustomerSupportPortal />
-        <button 
-          onClick={() => setIsCustomerMode(false)}
-          className="fixed bottom-4 right-4 bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] font-black text-gray-500 uppercase px-4 py-2 rounded-full transition-all z-50"
-        >
-          Return to BOH
-        </button>
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center p-6 font-sans">
+        <div className="max-w-lg w-full bg-[#1A1A1A] border border-red-500/30 p-8 rounded-xl shadow-2xl">
+          <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-4 border border-red-500/20">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-red-500 mb-2 uppercase tracking-tight">App Startup Error</h2>
+          <p className="text-gray-400 text-sm mb-4">
+            The application encountered a critical error during initialization startup.
+          </p>
+          <div className="bg-[#0A0A0A] p-4 rounded-lg border border-[#333] font-mono text-xs text-red-400 mb-6 overflow-x-auto">
+            {startupError.message || 'Unknown startup error occurred'}
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <button
+              onClick={() => {
+                setStartupError(null);
+                initialize().catch(err => setStartupError(err instanceof Error ? err : new Error(String(err))));
+              }}
+              className="w-full sm:w-auto flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold py-3 px-4 rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry Startup
+            </button>
+            <button
+              onClick={() => {
+                // Developer mode bypass to allow app access even if credentials or backend failed
+                useAuthStore.setState({
+                  user: { id: 'dev-user', email: 'staff@bridgecafe.com' } as any,
+                  role: 'manager',
+                  initialized: true,
+                  loading: false
+                });
+                setStartupError(null);
+              }}
+              className="w-full sm:w-auto bg-[#222] hover:bg-[#333] text-gray-300 font-bold py-3 px-4 rounded-lg text-xs uppercase tracking-wider transition-colors"
+            >
+              Bypass (Dev Mode)
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
-  useEffect(() => {
-    if (initialized && role) {
-      subscribeToOrders();
-    }
-  }, [initialized, role, subscribeToOrders]);
+  const [showSlowLoadWarning, setShowSlowLoadWarning] = useState(false);
 
   useEffect(() => {
-    if (role) setActiveView(role === 'manager' ? 'dashboard' : 'board');
-    if (role) {
-      import('./lib/notifications').then(m => m.requestNotificationPermission());
+    let timer: NodeJS.Timeout;
+    if (loading || !initialized) {
+      timer = setTimeout(() => {
+        console.warn('[Startup Trace WARN] App startup loading is taking longer than expected (>3500ms)...');
+        setShowSlowLoadWarning(true);
+      }, 3500);
+    } else {
+      setShowSlowLoadWarning(false);
     }
-  }, [role]);
+    return () => clearTimeout(timer);
+  }, [loading, initialized]);
 
   if (loading || !initialized) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+      <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col items-center justify-center p-6 font-sans">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+          <div>
+            <h3 className="text-sm font-bold tracking-wider text-amber-500 uppercase">Starting Bridge BOH...</h3>
+            <p className="text-xs text-gray-400 mt-1">Initializing auth session and live database connection</p>
+          </div>
+
+          {showSlowLoadWarning && (
+            <div className="mt-4 p-4 bg-[#141414] border border-amber-500/30 rounded-xl text-left w-full animate-fade-in shadow-xl">
+              <p className="text-xs text-amber-400 font-medium mb-3">
+                Initialization is taking longer than usual.
+              </p>
+              <button
+                onClick={() => {
+                  console.log('[Startup Trace] User triggered manual initialization force-complete');
+                  useAuthStore.setState({ loading: false, initialized: true });
+                }}
+                className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                Continue To App
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   if (!user) {
-    return <SignInScreen />;
+    return (
+      <ErrorBoundary name="SignInScreen">
+        <SignInScreen />
+      </ErrorBoundary>
+    );
   }
 
   const NavItem = ({ id, label, icon: Icon }: { id: View, label: string, icon: any }) => (
@@ -108,6 +235,7 @@ export default function App() {
             {role === 'manager' && <NavItem id="dashboard" label="MGR PANEL" icon={ShieldCheck} />}
             {(role !== 'manager') && <NavItem id="board" label="LIVE BOARD" icon={activeView === 'board' ? Terminal : LayoutDashboard} />}
             <NavItem id="messages" label="MESSAGES" icon={MessageSquare} />
+            <NavItem id="copilot" label="AI COPILOT" icon={Sparkles} />
           </nav>
         </div>
 
@@ -158,18 +286,48 @@ export default function App() {
             </div>
           </div>
 
-          {activeView === 'dashboard' && role === 'manager' && <ManagerDashboard />}
+          {activeView === 'dashboard' && role === 'manager' && (
+            <ErrorBoundary name="ManagerDashboard">
+              <ManagerDashboard />
+            </ErrorBoundary>
+          )}
           
           {activeView === 'board' && (
             <>
-              {role === 'waitress' && <WaitressBoard />}
-              {(role === 'head_chef' || role === 'prep_cook' || role === 'expeditor' || role === 'bartender') && <KitchenDisplaySystem />}
-              {role === 'takeout_host' && <TakeoutBoard />}
-              {role === 'driver' && <DriverDispatch />}
+              {role === 'waitress' && (
+                <ErrorBoundary name="WaitressBoard">
+                  <WaitressBoard />
+                </ErrorBoundary>
+              )}
+              {(role === 'head_chef' || role === 'prep_cook' || role === 'expeditor' || role === 'bartender') && (
+                <ErrorBoundary name="KitchenDisplaySystem">
+                  <KitchenDisplaySystem />
+                </ErrorBoundary>
+              )}
+              {role === 'takeout_host' && (
+                <ErrorBoundary name="TakeoutBoard">
+                  <TakeoutBoard />
+                </ErrorBoundary>
+              )}
+              {role === 'driver' && (
+                <ErrorBoundary name="DriverDispatch">
+                  <DriverDispatch />
+                </ErrorBoundary>
+              )}
             </>
           )}
 
-          {activeView === 'messages' && <MessagingInbox />}
+          {activeView === 'messages' && (
+            <ErrorBoundary name="MessagingInbox">
+              <MessagingInbox />
+            </ErrorBoundary>
+          )}
+
+          {activeView === 'copilot' && (
+            <ErrorBoundary name="AIWaitressCopilot">
+              <AIWaitressCopilot />
+            </ErrorBoundary>
+          )}
 
           {!role && (
             <div className="text-center p-20">
@@ -182,3 +340,4 @@ export default function App() {
     </div>
   );
 }
+
