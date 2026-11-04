@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import type { Order } from '../types';
 
 export default function TakeoutBoard() {
-  const { orders, subscribeToOrders, updateOrderStatus } = useOrderStore();
+  const { orders, subscribeToOrders, updateOrderStatus, updateOrder } = useOrderStore();
 
   useEffect(() => {
     subscribeToOrders();
@@ -36,6 +36,7 @@ export default function TakeoutBoard() {
               order={order} 
               onReady={() => updateOrderStatus(order.id, 'ready')}
               onHandOff={() => updateOrderStatus(order.id, 'delivered')}
+              onToggleOnline={(isOnline) => updateOrder(order.id, { table_number: isOnline ? 'ONLINE' : 'IN-HOUSE' })}
             />
           ))}
         </AnimatePresence>
@@ -51,7 +52,18 @@ export default function TakeoutBoard() {
   );
 }
 
-function TakeoutCard({ order, onReady, onHandOff }: { order: Order, onReady: () => void | Promise<void>, onHandOff: () => void | Promise<void>, key?: string }) {
+function TakeoutCard({ 
+  order, 
+  onReady, 
+  onHandOff, 
+  onToggleOnline 
+}: { 
+  order: Order, 
+  onReady: () => void | Promise<void>, 
+  onHandOff: () => void | Promise<void>, 
+  onToggleOnline: (isOnline: boolean) => void | Promise<void>,
+  key?: string 
+}) {
   const isReady = order.status === 'ready';
 
   return (
@@ -65,13 +77,33 @@ function TakeoutCard({ order, onReady, onHandOff }: { order: Order, onReady: () 
         isReady && "border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.05)]"
       )}
     >
-      <div className="p-4 bg-[#222] border-b border-[#333] flex justify-between items-center">
-        <div className="font-black text-lg tracking-tighter text-amber-500">
-           {order.customer_name?.toUpperCase() || 'EXTERNAL ORDER'}
+      <div className="p-4 bg-[#222] border-b border-[#333] flex flex-col gap-2">
+        <div className="flex justify-between items-center">
+          <div className="font-black text-lg tracking-tighter text-amber-500">
+             {order.customer_name?.toUpperCase() || 'EXTERNAL ORDER'}
+          </div>
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+            <Clock className="w-3 h-3" />
+            {formatDistanceToNow(new Date(order.created_at))}
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
-          <Clock className="w-3 h-3" />
-          {formatDistanceToNow(new Date(order.created_at))}
+
+        {/* Online vs In-House Toggle & Indicator */}
+        <div className="flex justify-between items-center pt-2 border-t border-[#333]/40">
+          <span className={cn(
+            "text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase",
+            order.table_number === 'ONLINE'
+              ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+              : "bg-zinc-800 text-zinc-400 border border-zinc-700"
+          )}>
+            {order.table_number === 'ONLINE' ? '🌐 ONLINE' : '🏠 IN-HOUSE'}
+          </span>
+          <button
+            onClick={() => onToggleOnline(order.table_number !== 'ONLINE')}
+            className="text-[9px] font-bold tracking-widest text-amber-500/80 hover:text-amber-500 transition-colors uppercase cursor-pointer"
+          >
+            {order.table_number === 'ONLINE' ? 'SET IN-HOUSE' : 'MARK ONLINE'}
+          </button>
         </div>
       </div>
 

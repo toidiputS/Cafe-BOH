@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Clock, MessageSquare, AlertCircle, ChevronRight, CheckCircle2, Plus } from 'lucide-react';
+import { Clock, MessageSquare, AlertCircle, ChevronRight, CheckCircle2, Plus, Printer } from 'lucide-react';
 import { useOrderStore } from '../store/useOrderStore';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '../lib/utils';
@@ -10,12 +11,21 @@ import NewOrderModal from './NewOrderModal';
 export default function WaitressBoard() {
   const { orders, subscribeToOrders, updateOrderStatus } = useOrderStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [orderToPrint, setOrderToPrint] = useState<Order | null>(null);
 
   useEffect(() => {
     subscribeToOrders();
   }, [subscribeToOrders]);
 
   const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
+
+  const handlePrint = (order: Order) => {
+    setOrderToPrint(order);
+    setTimeout(() => {
+      window.print();
+      setOrderToPrint(null);
+    }, 150);
+  };
 
   return (
     <div className="space-y-6">
@@ -36,6 +46,7 @@ export default function WaitressBoard() {
               key={order.id} 
               order={order} 
               onUpdateStatus={(status) => updateOrderStatus(order.id, status)}
+              onPrint={() => handlePrint(order)}
             />
           ))}
         </AnimatePresence>
@@ -44,11 +55,87 @@ export default function WaitressBoard() {
       <AnimatePresence>
         {isModalOpen && <NewOrderModal onClose={() => setIsModalOpen(false)} />}
       </AnimatePresence>
+
+      {orderToPrint && createPortal(
+        <div className="kitchen-chit-print">
+          <div className="text-center font-bold text-base border-b-2 border-dashed border-black pb-3 mb-3">
+            *** BRIDGE BOH KITCHEN ***
+            <div className="text-[10px] uppercase font-normal tracking-wider mt-1">Production Ticket</div>
+          </div>
+          
+          <div className="flex justify-between items-baseline mb-2">
+            <span className="text-lg font-bold">
+              {orderToPrint.order_type === 'dine_in' ? `TABLE ${orderToPrint.table_number || '??'}` : orderToPrint.order_type.toUpperCase()}
+            </span>
+            <span className="text-xs font-mono font-bold">
+              #{orderToPrint.id.substring(0, 6).toUpperCase()}
+            </span>
+          </div>
+
+          <div className="text-xs space-y-1 border-b border-dashed border-black pb-3 mb-3">
+            <div className="flex justify-between">
+              <span>ORDER TYPE:</span>
+              <span className="font-bold">{orderToPrint.order_type.toUpperCase()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>CUSTOMER:</span>
+              <span className="font-bold">{orderToPrint.customer_name || 'WALK-IN'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>RECEIVED:</span>
+              <span className="font-bold">{new Date(orderToPrint.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            </div>
+            {orderToPrint.priority && (
+              <div className="text-center font-bold text-sm bg-black text-white p-1 my-1 tracking-widest">
+                *** PRIORITY ***
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 mb-4 border-b-2 border-dashed border-black pb-3">
+            {orderToPrint.items.map((item, idx) => (
+              <div key={idx} className="text-xs">
+                <div className="flex justify-between font-bold">
+                  <span>[ ] {item.qty}x {item.name.toUpperCase()}</span>
+                  <span className="font-mono text-[10px]">{item.station?.toUpperCase()}</span>
+                </div>
+                
+                {item.mods && item.mods.length > 0 && (
+                  <div className="pl-6 text-[11px] font-bold font-mono mt-0.5">
+                    {item.mods.map((mod, mi) => (
+                      <div key={mi}>• {mod.toUpperCase()}</div>
+                    ))}
+                  </div>
+                )}
+                
+                {item.customizations && (
+                  <div className="pl-6 text-[11px] italic mt-0.5">
+                    REQ: "{item.customizations}"
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {orderToPrint.special_requests && (
+            <div className="mb-4 text-xs font-mono">
+              <div className="font-bold uppercase border-b border-black mb-1 pb-0.5">SPECIAL REQUESTS:</div>
+              <p className="whitespace-pre-wrap leading-tight">"{orderToPrint.special_requests}"</p>
+            </div>
+          )}
+
+          <div className="text-center text-[10px] space-y-1 font-mono pt-2 border-t border-dashed border-black">
+            <div>PRINTED: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}</div>
+            <div className="font-bold tracking-widest mt-1">*** KITCHEN COPY ***</div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
 
-function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (status: Order['status']) => void | Promise<void>, key?: string }) {
+function OrderCard({ order, onUpdateStatus, onPrint }: { order: Order, onUpdateStatus: (status: Order['status']) => void | Promise<void>, onPrint: () => void, key?: string }) {
   const timeElapsed = formatDistanceToNow(new Date(order.created_at));
   
   const getStatusColor = (status: Order['status']) => {
@@ -83,8 +170,20 @@ function OrderCard({ order, onUpdateStatus }: { order: Order, onUpdateStatus: (s
             <span>{timeElapsed} ago</span>
           </div>
         </div>
-        <div className={cn("px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider text-black", getStatusColor(order.status))}>
-          {order.status}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrint();
+            }}
+            className="p-1.5 bg-[#222] hover:bg-[#333] hover:text-amber-500 text-gray-400 rounded-lg transition-colors border border-[#333] flex items-center justify-center"
+            title="Print Kitchen Chit"
+          >
+            <Printer className="w-3.5 h-3.5" />
+          </button>
+          <div className={cn("px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider text-black", getStatusColor(order.status))}>
+            {order.status}
+          </div>
         </div>
       </div>
 

@@ -4,18 +4,75 @@
   "description": "Bridge Café Back of House Operations",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay"],
   "background_color": "#0A0A0A",
   "theme_color": "#F59E0B",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/192/192408.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/192/192408.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/192/192408.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/192/192408.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Kitchen Display (KDS)",
+      "short_name": "KDS",
+      "description": "Open BOH Kitchen Display System",
+      "url": "/",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/192/192408.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Waitress Board",
+      "short_name": "Orders",
+      "description": "Open FOH Waitress Order Board",
+      "url": "/",
+      "icons": [
+        {
+          "src": "https://cdn-icons-png.flaticon.com/512/192/192408.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://images.unsplash.com/photo-1556910103-1c02745aae4d?q=80&w=1280&h=720&fit=crop",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Manager Workstation Display System"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=640&h=1136&fit=crop",
+      "sizes": "640x1136",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Mobile Waitress Board View"
     }
   ]
 }

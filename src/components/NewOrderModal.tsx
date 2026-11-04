@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Plus, Search, User, CreditCard, ShoppingBag, Utensils } from 'lucide-react';
+import { X, Plus, Search, User, CreditCard, ShoppingBag, Utensils, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useOrderStore } from '../store/useOrderStore';
+import { useInventoryStore } from '../store/useInventoryStore';
+import { audioAlerts } from '../lib/audioAlerts';
 import { cn } from '../lib/utils';
 import type { CustomerProfile, Station } from '../types';
 
@@ -22,6 +24,14 @@ export default function NewOrderModal({ onClose }: NewOrderModalProps) {
   const [newItemName, setNewItemName] = useState('');
   const [newItemStation, setNewItemStation] = useState<Station>('grill');
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [specialRequests, setSpecialRequests] = useState('');
+  
+  const { items: menuItems, initialize: initInventory } = useInventoryStore();
+  const [activeMenuTab, setActiveMenuTab] = useState<'grill' | 'fry' | 'prep' | 'bar'>('grill');
+
+  useEffect(() => {
+    initInventory();
+  }, [initInventory]);
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -55,7 +65,8 @@ export default function NewOrderModal({ onClose }: NewOrderModalProps) {
         items: items.map(i => ({ ...i, status: 'pending', mods: [], customizations: '' })),
         total_price: totalPrice || (items.length * 15), // Estimate if not set
         customer_id: selectedCustomerId,
-        status: 'new'
+        status: 'new',
+        special_requests: specialRequests
       });
 
     if (error) {
@@ -172,62 +183,190 @@ export default function NewOrderModal({ onClose }: NewOrderModalProps) {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="space-y-4">
-                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Add Items</label>
+              {/* Dynamic Menu Selection Grid */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Tap Menu Items to Add</label>
+                  <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Real-time Stock Checked</span>
+                </div>
+                
+                {/* Menu Category Tabs */}
+                <div className="flex bg-black/40 p-1 rounded-xl border border-[#333] overflow-x-auto gap-1">
+                  {(['grill', 'fry', 'prep', 'bar'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveMenuTab(tab)}
+                      className={cn(
+                        "flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap px-3",
+                        activeMenuTab === tab ? "bg-amber-500 text-black shadow-lg" : "text-gray-500 hover:text-gray-300"
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab Menu Items Grid */}
+                <div className="grid grid-cols-2 gap-2.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                  {menuItems.filter(i => i.station === activeMenuTab).map((menuItem) => (
+                    <button
+                      key={menuItem.id}
+                      type="button"
+                      disabled={menuItem.is86d}
+                      onClick={() => {
+                        setItems((prev) => {
+                          const existing = prev.find(i => i.name === menuItem.name);
+                          if (existing) {
+                            return prev.map(i => i.name === menuItem.name ? { ...i, qty: i.qty + 1 } : i);
+                          }
+                          return [...prev, { name: menuItem.name, qty: 1, station: menuItem.station }];
+                        });
+                        setTotalPrice(prev => prev + menuItem.price);
+                        audioAlerts.playFireItemSizzle();
+                      }}
+                      className={cn(
+                        "p-3 rounded-2xl border text-left flex flex-col justify-between h-[72px] transition-all relative overflow-hidden group/menuitem active:scale-95",
+                        menuItem.is86d 
+                          ? "bg-red-500/5 border-red-500/10 opacity-40 cursor-not-allowed" 
+                          : "bg-black/30 border-[#222] hover:border-amber-500/40 hover:bg-black/50"
+                      )}
+                    >
+                      {menuItem.is86d && (
+                        <div className="absolute inset-0 bg-red-950/20 backdrop-blur-[1px] flex items-center justify-center z-10">
+                          <span className="text-[8px] font-black bg-red-500 text-white px-1.5 py-0.5 rounded tracking-widest uppercase flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" /> 86'D
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-start w-full">
+                        <span className="text-[10px] font-black text-white uppercase tracking-tight group-hover/menuitem:text-amber-500 transition-colors truncate max-w-[80%]">
+                          {menuItem.name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center w-full mt-auto">
+                        <span className="text-[9px] text-gray-500 font-bold font-mono">${menuItem.price.toFixed(2)}</span>
+                        {!menuItem.is86d && (
+                          <span className="text-[8px] text-amber-500/60 font-black uppercase tracking-widest group-hover/menuitem:text-amber-500">
+                            + ADD
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Manual Backup Add */}
+              <div className="space-y-2 border-t border-[#222] pt-4">
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Manual / Custom Item Entry</label>
                 <div className="flex gap-2">
                   <input 
                     type="text"
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
-                    placeholder="Item name..."
-                    className="flex-1 bg-black border border-[#333] rounded-xl p-4 text-sm font-bold uppercase"
+                    placeholder="Custom dish (e.g., Gluten-free pancake)..."
+                    className="flex-1 bg-black border border-[#222] rounded-xl p-3 text-xs font-bold uppercase placeholder-gray-700 text-gray-200"
                   />
                   <select 
                     value={newItemStation}
                     onChange={(e) => setNewItemStation(e.target.value as Station)}
-                    className="bg-black border border-[#333] rounded-xl px-4 text-xs font-black uppercase"
+                    className="bg-black border border-[#222] rounded-xl px-3 text-[10px] font-black uppercase text-gray-400"
                   >
                     <option value="grill">GRILL</option>
                     <option value="fry">FRY</option>
                     <option value="prep">PREP</option>
                     <option value="bar">BAR</option>
                   </select>
-                  <button onClick={addItem} className="bg-amber-500 text-black p-4 rounded-xl hover:bg-amber-600 transition-all shadow-lg">
-                    <Plus className="w-5 h-5" />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (newItemName) {
+                        setItems([...items, { name: newItemName, qty: 1, station: newItemStation }]);
+                        setTotalPrice(prev => prev + 15); // Add default $15 for manual custom item
+                        setNewItemName('');
+                      }
+                    }} 
+                    className="bg-amber-500 hover:bg-amber-600 text-black px-4 rounded-xl transition-all shadow-lg font-black text-xs flex items-center justify-center"
+                  >
+                    <Plus className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
+              {/* Order Ticket Preview */}
               <div className="bg-black/40 rounded-2xl border border-[#333] overflow-hidden">
-                <div className="p-4 border-b border-[#333] bg-black/20">
-                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">ORDER TICKET PREVIEW</span>
+                <div className="p-3.5 border-b border-[#333] bg-black/20 flex justify-between items-center">
+                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">ORDER TICKET PREVIEW</span>
+                  {items.length > 0 && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setItems([]);
+                        setTotalPrice(0);
+                      }}
+                      className="text-[8px] font-black text-red-500 uppercase hover:underline"
+                    >
+                      CLEAR ALL
+                    </button>
+                  )}
                 </div>
-                <div className="p-4 space-y-3 max-h-[200px] overflow-y-auto">
+                <div className="p-4 space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar">
                   {items.map((item, i) => (
-                    <div key={i} className="flex justify-between items-center border-b border-[#333] pb-2 last:border-0 last:pb-0">
+                    <div key={i} className="flex justify-between items-center border-b border-gray-950 pb-2 last:border-0 last:pb-0">
                       <div className="flex items-center gap-3">
-                        <span className="font-black text-amber-500">{item.qty}x</span>
-                        <span className="text-sm font-bold text-gray-300 uppercase">{item.name}</span>
+                        <span className="font-black text-amber-500 text-sm">{item.qty}x</span>
+                        <span className="text-xs font-bold text-gray-300 uppercase">{item.name}</span>
                       </div>
-                      <span className="text-[9px] font-black bg-[#333] px-2 py-0.5 rounded text-gray-500 uppercase">{item.station}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[8px] font-black bg-[#222] px-2 py-0.5 rounded text-gray-500 uppercase">{item.station}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Find item price if exists in inventory, otherwise default $15
+                            const price = menuItems.find(mi => mi.name === item.name)?.price ?? 15;
+                            setItems(prev => prev.map((it, idx) => idx === i ? { ...it, qty: it.qty - 1 } : it).filter(it => it.qty > 0));
+                            setTotalPrice(prev => Math.max(0, prev - price));
+                          }}
+                          className="text-gray-600 hover:text-red-500 font-bold text-sm px-1.5"
+                        >
+                          -
+                        </button>
+                      </div>
                     </div>
                   ))}
                   {items.length === 0 && (
-                    <p className="text-center py-6 text-gray-600 text-xs font-bold uppercase italic uppercase">No items added</p>
+                    <p className="text-center py-4 text-gray-600 text-[10px] font-black uppercase tracking-widest italic">No items added</p>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-4">
-                 <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Estimated Total ($)</label>
-                 <input 
-                   type="number"
-                   value={totalPrice}
-                   onChange={(e) => setTotalPrice(Number(e.target.value))}
-                   placeholder="0.00"
-                   className="w-full bg-black border border-[#333] rounded-2xl p-4 text-3xl font-black focus:border-amber-500 outline-none transition-all"
-                 />
-                 <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest">Points earned: {Math.floor(totalPrice * 10)} PTS</p>
+              {/* Special Requests & Est Total */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Special Requests & Allergy Notes</label>
+                  <textarea 
+                    value={specialRequests}
+                    onChange={(e) => setSpecialRequests(e.target.value)}
+                    placeholder="e.g. Gluten allergy, dressing on the side..."
+                    rows={2}
+                    className="w-full bg-black border border-[#222] rounded-2xl p-3.5 text-xs font-semibold focus:border-amber-500 outline-none transition-all resize-none placeholder-gray-700 text-gray-200 h-[64px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-baseline">
+                    <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Estimated Total ($)</label>
+                    <span className="text-[8px] font-black text-amber-500/60 uppercase tracking-widest">{Math.floor(totalPrice * 10)} PTS EARNED</span>
+                  </div>
+                  <input 
+                    type="number"
+                    value={totalPrice.toFixed(2)}
+                    onChange={(e) => setTotalPrice(Number(e.target.value))}
+                    placeholder="0.00"
+                    className="w-full bg-black border border-[#222] rounded-2xl p-3.5 text-xl font-black text-amber-500 focus:border-amber-500 outline-none transition-all h-[64px]"
+                  />
+                </div>
               </div>
             </div>
           )}

@@ -40,3 +40,36 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #444;
 }
+
+/* Kitchen display print-friendly thermal receipt styles */
+.kitchen-chit-print {
+  display: none;
+}
+
+@media print {
+  html, body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  .kitchen-chit-print {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 74mm !important;
+    margin: 0;
+    padding: 10px 10px 20px 10px !important;
+    box-sizing: border-box !important;
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+  }
+}
